@@ -934,56 +934,41 @@ async function runOcr() {
     updateOcrStatus('Google Vision으로 인식 중...');
 
     // Netlify Function 경유 (CORS 우회)
-    const res = await fetch('/.netlify/functions/ocr', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: base64 })
-    });
-
-    if (!res.ok) {
-      const e = await res.text().catch(() => '');
-      throw new Error(`Vision API ${res.status}: ${e.slice(0, 150)}`);
-    }
-
-    const data = await res.json();
-    const resp = data.responses?.[0];
-    if (resp?.error) throw new Error(resp.error.message);
-
-    // 단어 단위 bbox 추출
-    const words = resp?.fullTextAnnotation?.pages?.[0]?.blocks
-      ?.flatMap(b => b.paragraphs)
-      ?.flatMap(p => p.words) || [];
-
-    // 리사이즈 비율 보정
+    // 리사이즈 비율 계산
     const tmpImg = new Image();
     await new Promise(r => { tmpImg.onload = r; tmpImg.src = resized; });
     const scX = natW / (tmpImg.width  || 1);
     const scY = natH / (tmpImg.height || 1);
 
-    const rawRegions = words
-      .filter(w => {
-        const txt = (w.symbols || []).map(s => s.text).join('');
-        return txt.trim().length > 0 && isLikelyHandwriting(w);
-      })
-      .map(w => {
-        const verts = w.boundingBox?.vertices || [];
-        const xs = verts.map(v => (v.x || 0) * scX);
-        const ys = verts.map(v => (v.y || 0) * scY);
-        return {
-          id: genId(),
-          text: (w.symbols || []).map(s => s.text).join(''),
-          bbox: {
-            x0: Math.max(0, Math.min(...xs)),
-            y0: Math.max(0, Math.min(...ys)),
-            x1: Math.min(natW, Math.max(...xs)),
-            y1: Math.min(natH, Math.max(...ys)),
-          },
-          isHandwriting: true,
-          toErase: autoDetect,
-        };
-      });
+    const res = await fetch('/.netlify/functions/ocr', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64, imageWidth: tmpImg.width, imageHeight: tmpImg.height })
+    });
 
-    ocrRegions = mergeNearbyRegions(rawRegions, natW);
+    if (!res.ok) {
+      const e = await res.text().catch(() => '');
+      throw new Error(`OCR ${res.status}: ${e.slice(0, 150)}`);
+    }
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // 서버에서 이미 손글씨 필터링 완료 — 좌표를 원본 이미지 크기로 보정
+    const rawRegions = (data.regions || []).map(r => ({
+      id: genId(),
+      text: r.text || '손글씨',
+      bbox: {
+        x0: Math.max(0, r.bbox.x0 * scX),
+        y0: Math.max(0, r.bbox.y0 * scY),
+        x1: Math.min(natW, r.bbox.x1 * scX),
+        y1: Math.min(natH, r.bbox.y1 * scY),
+      },
+      isHandwriting: true,
+      toErase: autoDetect,
+    }));
+
+    ocrRegions = rawRegions;
 
     if (ocrRegions.length === 0) {
       showToast('손글씨가 감지되지 않았어요 — 수동으로 영역을 그려보세요');
@@ -1328,11 +1313,28 @@ function openSizeEdit(noteId) {
   currentBlankStyle = n.printSettings?.blankStyle||'white';
   currentMargin = n.printSettings?.margin??8;
 
-  $('size-preview-img').src = n.processedImage||n.originalImage||'';
+  updateSizePreview(n);
   $('margin-slider').value = currentMargin;
   $('margin-label').textContent = currentMargin+'px';
   renderSizeChips(); renderBlankChips();
   navigate('size-screen');
+}
+
+function updateSizePreview(noteOverride) {
+  const n = noteOverride || getNoteById(currentNoteId); if(!n) return;
+  const img = $('size-preview-img');
+  img.src = n.processedImage || n.originalImage || '';
+  img.style.padding = currentMargin + 'px';
+  img.style.boxSizing = 'border-box';
+  // 빈칸 스타일 시각화
+  const paper = img.parentElement;
+  if(currentBlankStyle === 'underline') {
+    paper.style.borderBottom = '2px solid #333';
+  } else if(currentBlankStyle === 'dotted') {
+    paper.style.border = '1px dashed #999';
+  } else {
+    paper.style.border = '1px solid #ddd';
+  }
 }
 
 function renderSizeChips() {
@@ -1343,9 +1345,9 @@ function renderBlankChips() {
   $('blank-chips').innerHTML = BLANK_STYLES.map(b=>`
     <button class="chip${b.v===currentBlankStyle?' active-green':''}" onclick="setBlankStyle('${b.v}')">${b.l}</button>`).join('');
 }
-function setPaperSize(v){ currentPaperSize=v; renderSizeChips(); }
-function setBlankStyle(v){ currentBlankStyle=v; renderBlankChips(); }
-function updateMarginLabel(v){ $('margin-label').textContent=v+'px'; currentMargin=parseInt(v); }
+function setPaperSize(v){ currentPaperSize=v; renderSizeChips(); updateSizePreview(); }
+function setBlankStyle(v){ currentBlankStyle=v; renderBlankChips(); updateSizePreview(); }
+function updateMarginLabel(v){ $('margin-label').textContent=v+'px'; currentMargin=parseInt(v); updateSizePreview(); }
 
 function saveSettings(goHome) {
   const n = getNoteById(currentNoteId); if(!n) return;
