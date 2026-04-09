@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="오답노트">
+<meta name="theme-color" content="#1D9E75">
+<link rel="manifest" href="manifest.json">
+<title>오답노트</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #1D9E75;
+  --primary-dark: #0F6E56;
+  --primary-light: #E1F5EE;
+  --primary-deep: #04342C;
+  --accent: #534AB7;
+  --accent-light: #EEEDFE;
+  --bg: #F5F4F0;
+  --surface: #FFFFFF;
+  --surface2: #F1EFE8;
+  --text: #1A1918;
+  --text2: #5C5B57;
+  --text3: #A8A7A2;
+  --border: rgba(0,0,0,0.07);
+  --border2: rgba(0,0,0,0.13);
+  --danger: #E24B4A;
+  --danger-light: #FCEBEB;
+  --warning: #BA7517;
+  --warning-light: #FAEEDA;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-full: 999px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.1), 0 3px 8px rgba(0,0,0,0.06);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); }
+body { font-family: 'Noto Sans KR', sans-serif; color: var(--text); }
+
+/* ── App Shell ── */
+#app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+.screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+.screen.active { display: flex; }
+
+/* ── Bottom Nav ── */
+#nav {
+  display: flex; background: var(--surface);
+  border-top: 0.5px solid var(--border2);
+  padding-bottom: var(--safe-bottom);
+  flex-shrink: 0; z-index: 100;
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 3px; padding: 10px 0; border: none; background: none; cursor: pointer;
+  color: var(--text3); font-family: inherit; transition: color .15s;
+}
+.nav-btn.active { color: var(--primary); }
+.nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+.nav-label { font-size: 10px; font-weight: 500; letter-spacing: -0.2px; }
+
+/* ── Scrollable content ── */
+.scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* ── Header ── */
+.header {
+  padding: calc(var(--safe-top) + 16px) 20px 20px;
+  background: var(--primary); flex-shrink: 0;
+}
+.header-row { display: flex; align-items: flex-end; justify-content: space-between; }
+.header-greeting { font-size: 13px; color: var(--primary-light); margin-bottom: 3px; }
+.header-title { font-size: 24px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+.header-stats { display: flex; gap: 16px; align-items: flex-end; }
+.stat { text-align: center; }
+.stat-num { font-size: 20px; font-weight: 700; color: #fff; line-height: 1; }
+.stat-label { font-size: 10px; color: var(--primary-light); margin-top: 2px; }
+.stat-div { width: 0.5px; height: 28px; background: rgba(255,255,255,0.25); }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface); border-radius: var(--radius);
+  border: 0.5px solid var(--border); box-shadow: var(--shadow-sm);
+}
+
+/* ── Action Buttons (Home) ── */
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px; }
+.action-btn {
+  border-radius: var(--radius); padding: 16px 14px; border: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  transition: transform .12s, box-shadow .12s; text-align: left; font-family: inherit;
+}
+.action-btn:active { transform: scale(0.97); }
+.action-btn.primary { background: var(--primary); box-shadow: var(--shadow-md); }
+.action-btn.secondary { background: var(--surface); border: 0.5px solid var(--border2); box-shadow: var(--shadow-sm); }
+.action-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+.action-btn.primary .action-icon { background: rgba(255,255,255,0.2); }
+.action-btn.secondary .action-icon { background: var(--accent-light); }
+.action-name { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+.action-btn.secondary .action-name { color: var(--text); }
+.action-sub { font-size: 11px; color: rgba(255,255,255,0.7); }
+.action-btn.secondary .action-sub { color: var(--text2); }
+
+/* ── Section ── */
+.section { padding: 0 16px 16px; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.section-title { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.2px; }
+.section-more { font-size: 13px; color: var(--primary); }
+
+/* ── Note Cards ── */
+.note-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border-radius: var(--radius);
+  border: 0.5px solid var(--border); box-shadow: var(--shadow-sm);
+  padding: 10px; margin-bottom: 8px; cursor: pointer;
+  transition: transform .12s; overflow: hidden;
+}
+.note-card:active { transform: scale(0.985); }
+.note-thumb {
+  width: 56px; height: 44px; border-radius: var(--radius-sm);
+  background: var(--surface2); flex-shrink: 0; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.note-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.note-info { flex: 1; min-width: 0; }
+.subject-badge {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: var(--radius-full); margin-bottom: 3px;
+  letter-spacing: 0.2px;
+}
+.note-title { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.note-date { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.review-dot { width: 8px; height: 8px; border-radius: 4px; flex-shrink: 0; }
+
+/* ── Camera Screen ── */
+#camera-screen { background: #000; position: relative; }
+#video { width: 100%; height: 100%; object-fit: cover; flex: 1; }
+.cam-overlay { position: absolute; inset: 0; pointer-events: none; }
+.cam-top {
+  position: absolute; top: 0; left: 0; right: 0;
+  padding: calc(var(--safe-top) + 12px) 16px 16px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+  display: flex; align-items: center; justify-content: space-between; pointer-events: all;
+}
+.cam-title { font-size: 15px; font-weight: 500; color: #fff; }
+.cam-icon-btn {
+  width: 38px; height: 38px; border-radius: 19px;
+  background: rgba(255,255,255,0.15); border: none;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff;
+}
+.guide-frame {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -55%);
+  width: 78%; aspect-ratio: 4/3;
+}
+.guide-hint {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -180%);
+  font-size: 12px; color: rgba(255,255,255,0.7); white-space: nowrap;
+  background: rgba(0,0,0,0.35); padding: 4px 10px; border-radius: var(--radius-full);
+}
+.guide-corner {
+  position: absolute; width: 22px; height: 22px;
+  border-color: var(--primary); border-style: solid; border-width: 0;
+}
+.gc-tl { top: -1px; left: -1px; border-top-width: 3px; border-left-width: 3px; border-radius: 4px 0 0 0; }
+.gc-tr { top: -1px; right: -1px; border-top-width: 3px; border-right-width: 3px; border-radius: 0 4px 0 0; }
+.gc-bl { bottom: -1px; left: -1px; border-bottom-width: 3px; border-left-width: 3px; border-radius: 0 0 0 4px; }
+.gc-br { bottom: -1px; right: -1px; border-bottom-width: 3px; border-right-width: 3px; border-radius: 0 0 4px 0; }
+.guide-inner { position: absolute; inset: 0; border: 0.5px solid rgba(255,255,255,0.15); }
+.cam-bottom {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 20px 40px calc(var(--safe-bottom) + 24px);
+  background: linear-gradient(to top, rgba(0,0,0,0.65), transparent);
+  display: flex; align-items: center; justify-content: space-around; pointer-events: all;
+}
+.shutter {
+  width: 72px; height: 72px; border-radius: 36px; border: 3px solid rgba(255,255,255,0.5);
+  background: #fff; cursor: pointer; transition: transform .1s, opacity .1s;
+  display: flex; align-items: center; justify-content: center;
+}
+.shutter:active { transform: scale(0.94); opacity: 0.85; }
+.shutter-inner { width: 60px; height: 60px; border-radius: 30px; background: #fff; border: 2px solid rgba(0,0,0,0.08); }
+.cam-side-btn {
+  width: 46px; height: 46px; border-radius: 23px;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+  display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff;
+}
+
+/* ── OCR Screen ── */
+#img-preview-wrap {
+  position: relative; background: #111; overflow: hidden; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+#img-preview { max-width: 100%; display: block; }
+#ocr-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: crosshair; }
+.ocr-processing {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.55);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+}
+.spinner {
+  width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.2);
+  border-top-color: var(--primary); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.ocr-hint { font-size: 13px; color: rgba(255,255,255,0.85); }
+.ocr-controls { padding: 12px 16px; background: var(--surface); border-bottom: 0.5px solid var(--border); flex-shrink: 0; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
+.toggle-row + .toggle-row { border-top: 0.5px solid var(--border); }
+.toggle-label { font-size: 13px; font-weight: 500; color: var(--text); }
+.toggle-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.toggle {
+  width: 44px; height: 26px; border-radius: 13px; border: none; cursor: pointer;
+  position: relative; transition: background .2s; flex-shrink: 0;
+}
+.toggle.on { background: var(--primary); }
+.toggle.off { background: var(--border2); }
+.toggle-knob {
+  position: absolute; top: 3px; width: 20px; height: 20px; border-radius: 10px;
+  background: #fff; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+.toggle.on .toggle-knob { left: 21px; }
+.toggle.off .toggle-knob { left: 3px; }
+.legend { display: flex; gap: 14px; margin-top: 8px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.legend-box { width: 12px; height: 12px; border-radius: 2px; border: 1.5px solid; }
+
+/* ── Page Header ── */
+.page-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: calc(var(--safe-top) + 14px) 16px 14px;
+  background: var(--surface); border-bottom: 0.5px solid var(--border);
+  flex-shrink: 0;
+}
+.back-btn {
+  width: 34px; height: 34px; border-radius: 17px; background: var(--surface2);
+  border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.page-title { font-size: 16px; font-weight: 700; color: var(--text); flex: 1; letter-spacing: -0.3px; }
+.page-action { font-size: 14px; color: var(--primary); font-weight: 500; border: none; background: none; cursor: pointer; font-family: inherit; }
+
+/* ── Bottom Bar ── */
+.bottom-bar {
+  display: flex; gap: 10px;
+  padding: 12px 16px calc(var(--safe-bottom) + 12px);
+  background: var(--surface); border-top: 0.5px solid var(--border); flex-shrink: 0;
+}
+.btn {
+  flex: 1; padding: 14px; border-radius: var(--radius); border: none;
+  font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: transform .1s, opacity .1s; letter-spacing: -0.2px;
+}
+.btn:active { transform: scale(0.97); opacity: 0.9; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 0.5px solid var(--border2); }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-disabled { background: var(--surface2); color: var(--text3); cursor: not-allowed; }
+
+/* ── Size Edit ── */
+.preview-paper-wrap { background: var(--surface2); padding: 24px; display: flex; justify-content: center; align-items: center; min-height: 180px; flex-shrink: 0; }
+.preview-paper {
+  background: #fff; border-radius: 4px; border: 1px solid #ddd;
+  box-shadow: var(--shadow-md); overflow: hidden; width: 100px; min-height: 130px;
+  display: flex; flex-direction: column;
+}
+.preview-paper-img { width: 100%; height: 120px; object-fit: contain; }
+.settings-group { padding: 0 16px 12px; }
+.settings-label { font-size: 12px; font-weight: 700; color: var(--text3); letter-spacing: 0.5px; text-transform: uppercase; margin: 16px 0 8px; }
+.chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  padding: 7px 14px; border-radius: var(--radius-full); border: 0.5px solid var(--border2);
+  background: var(--surface); font-size: 13px; color: var(--text2); cursor: pointer;
+  transition: all .15s; font-family: inherit;
+}
+.chip.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 500; }
+.chip.active-green { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); font-weight: 500; }
+.margin-slider { width: 100%; accent-color: var(--primary); margin-top: 4px; }
+
+/* ── Notes List ── */
+.filter-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 10px 16px; background: var(--surface); border-bottom: 0.5px solid var(--border); flex-shrink: 0; display: flex; gap: 8px; }
+.filter-scroll::-webkit-scrollbar { display: none; }
+.filter-chip {
+  padding: 5px 14px; border-radius: var(--radius-full); border: 0.5px solid var(--border2);
+  white-space: nowrap; font-size: 13px; color: var(--text2); cursor: pointer; background: var(--surface);
+  transition: all .15s; font-family: inherit;
+}
+.filter-chip.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 500; }
+
+/* ── Note Detail ── */
+.toggle-img-row { display: flex; margin: 0; border-bottom: 0.5px solid var(--border); flex-shrink: 0; }
+.img-toggle-btn { flex: 1; padding: 10px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; font-family: inherit; transition: all .15s; }
+.img-toggle-btn.active { background: var(--primary); color: #fff; }
+.img-toggle-btn:not(.active) { background: var(--surface); color: var(--text2); }
+.detail-img { width: 100%; display: block; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; }
+.info-cell { }
+.info-label-s { font-size: 11px; color: var(--text3); margin-bottom: 3px; }
+.info-value-s { font-size: 13px; font-weight: 500; color: var(--text); }
+.review-toggle-btn {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 14px 16px;
+  border: none; background: var(--surface); border-top: 0.5px solid var(--border);
+  border-bottom: 0.5px solid var(--border); cursor: pointer; font-family: inherit; transition: background .15s;
+}
+.review-toggle-btn:active { background: var(--surface2); }
+.review-status-dot { width: 10px; height: 10px; border-radius: 5px; }
+.review-text { font-size: 14px; font-weight: 500; }
+.printer-banner {
+  margin: 16px; padding: 14px; border-radius: var(--radius);
+  background: var(--primary-light); border: 0.5px solid var(--primary); display: flex; align-items: center; gap: 12px;
+}
+.printer-badge { font-size: 10px; padding: 3px 8px; border-radius: var(--radius-full); background: var(--warning-light); color: var(--warning); font-weight: 700; margin-left: auto; }
+
+/* ── Empty state ── */
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 32px; gap: 12px; flex: 1; }
+.empty-icon { width: 64px; height: 64px; border-radius: 20px; background: var(--surface2); display: flex; align-items: center; justify-content: center; margin-bottom: 4px; }
+.empty-title { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+.empty-desc { font-size: 13px; color: var(--text2); text-align: center; line-height: 1.6; }
+
+/* ── Meta form ── */
+.subject-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 16px; }
+.subject-chip {
+  padding: 10px 6px; border-radius: var(--radius-sm); border: 0.5px solid var(--border2);
+  background: var(--surface); text-align: center; font-size: 13px; font-weight: 500;
+  color: var(--text2); cursor: pointer; font-family: inherit; transition: all .15s;
+}
+.subject-chip.active { font-weight: 700; }
+.text-input {
+  width: 100%; padding: 13px 14px; border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border2); font-size: 14px; font-family: inherit;
+  background: var(--surface); color: var(--text); outline: none;
+}
+.text-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(29,158,117,0.12); }
+.step-dots { display: flex; gap: 6px; align-items: center; justify-content: center; padding: 10px; }
+.dot { width: 6px; height: 6px; border-radius: 3px; background: var(--border2); transition: all .2s; }
+.dot.active { width: 18px; background: var(--primary); }
+
+/* ── Toast ── */
+#toast {
+  position: fixed; bottom: calc(var(--safe-bottom) + 80px); left: 50%; transform: translateX(-50%) translateY(20px);
+  background: rgba(20,20,20,0.88); color: #fff; padding: 10px 20px;
+  border-radius: var(--radius-full); font-size: 13px; white-space: nowrap;
+  opacity: 0; transition: all .25s; z-index: 999; backdrop-filter: blur(8px); pointer-events: none;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Hidden file input ── */
+#file-input, #gallery-input { display: none; }
+
+svg { display: block; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ══════════════ HOME ══════════════ -->
+  <div class="screen active" id="home-screen">
+    <div class="header">
+      <div class="header-row">
+        <div>
+          <div class="header-greeting" id="greeting">안녕하세요 👋</div>
+          <div class="header-title">오답노트</div>
+        </div>
+        <div class="header-stats">
+          <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">전체</div></div>
+          <div class="stat-div"></div>
+          <div class="stat"><div class="stat-num" id="stat-todo">0</div><div class="stat-label">복습 필요</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="action-grid">
+        <button class="action-btn primary" onclick="openCamera()">
+          <div class="action-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="4" stroke="white" stroke-width="1.8"/><path d="M9 3h6l1.5 2H18a2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h1.5L9 3z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <div class="action-name">촬영하기</div>
+            <div class="action-sub">카메라로 찍기</div>
+          </div>
+        </button>
+        <button class="action-btn secondary" onclick="document.getElementById('gallery-input').click()">
+          <div class="action-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="#534AB7" stroke-width="1.8"/><path d="M3 15l5-5 4 4 3-3 6 6" stroke="#534AB7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="8.5" r="1.5" fill="#534AB7"/></svg>
+          </div>
+          <div>
+            <div class="action-name">갤러리</div>
+            <div class="action-sub">사진 불러오기</div>
+          </div>
+        </button>
+      </div>
+
+      <div class="section" id="recent-section">
+        <div class="section-header">
+          <div class="section-title">최근 오답</div>
+          <button class="section-more" onclick="showScreen('notes-screen')">전체 보기</button>
+        </div>
+        <div id="recent-list"></div>
+        <div class="empty" id="home-empty" style="display:none">
+          <div class="empty-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="2" stroke="#A8A7A2" stroke-width="1.5"/><line x1="8" y1="8" x2="16" y2="8" stroke="#A8A7A2" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="12" x2="13" y2="12" stroke="#A8A7A2" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="empty-title">오답이 없어요</div>
+          <div class="empty-desc">카메라로 문제를 찍으면<br>손글씨를 자동으로 인식해 지워줘요</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ NOTES LIST ══════════════ -->
+  <div class="screen" id="notes-screen">
+    <div class="page-header" style="padding-top: calc(var(--safe-top) + 14px);">
+      <div class="page-title">오답 노트</div>
+      <span id="notes-count-badge" style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--primary-light);color:var(--primary-dark);">0개</span>
+    </div>
+    <div class="filter-scroll" id="filter-row"></div>
+    <div id="notes-summary" style="padding:8px 16px;font-size:12px;color:var(--text2);background:var(--surface);border-bottom:0.5px solid var(--border);flex-shrink:0;"></div>
+    <div class="scroll">
+      <div style="padding:12px 16px 100px;" id="notes-list"></div>
+      <div class="empty" id="notes-empty" style="display:none;">
+        <div class="empty-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="2" stroke="#A8A7A2" stroke-width="1.5"/><line x1="8" y1="8" x2="16" y2="8" stroke="#A8A7A2" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div class="empty-title">오답이 없어요</div>
+        <div class="empty-desc">촬영하거나 갤러리에서<br>사진을 불러와 추가해보세요</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CAMERA ══════════════ -->
+  <div class="screen" id="camera-screen">
+    <video id="video" autoplay playsinline muted></video>
+    <div class="cam-overlay">
+      <div class="cam-top">
+        <button class="cam-icon-btn" onclick="closeCamera()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><line x1="18" y1="6" x2="6" y2="18" stroke="white" stroke-width="2.5" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </button>
+        <span class="cam-title">문제 촬영</span>
+        <button class="cam-icon-btn" id="flash-btn" onclick="toggleFlash()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 2L4.5 13.5H11L10 22L20 10H13.5L13 2Z" stroke="white" stroke-width="2" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="guide-frame">
+        <div class="guide-hint">가이드 안에 문제를 맞춰주세요</div>
+        <div class="guide-inner"></div>
+        <div class="guide-corner gc-tl"></div>
+        <div class="guide-corner gc-tr"></div>
+        <div class="guide-corner gc-bl"></div>
+        <div class="guide-corner gc-br"></div>
+      </div>
+      <div class="cam-bottom">
+        <button class="cam-side-btn" onclick="document.getElementById('gallery-input').click()">
+          <svg width="20" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="white" stroke-width="1.8"/><path d="M3 15l5-5 4 4 3-3 6 6" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <button class="shutter" onclick="takePhoto()"><div class="shutter-inner"></div></button>
+        <div style="width:46px"></div>
+      </div>
+    </div>
+    <canvas id="photo-canvas" style="display:none"></canvas>
+  </div>
+
+  <!-- ══════════════ OCR PROCESS ══════════════ -->
+  <div class="screen" id="ocr-screen">
+    <div class="page-header">
+      <button class="back-btn" onclick="goBack('ocr-screen')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
+      <div class="page-title" id="ocr-step-title">손글씨 인식</div>
+      <button class="page-action" onclick="goBack('ocr-screen')">취소</button>
+    </div>
+    <div class="step-dots" id="step-dots">
+      <div class="dot active" id="dot-1"></div>
+      <div class="dot" id="dot-2"></div>
+    </div>
+
+    <!-- Step 1: OCR -->
+    <div id="ocr-step1" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div id="img-preview-wrap" style="flex:0 0 auto;background:#111;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">
+        <img id="img-preview" alt="" style="display:block;max-width:100%;max-height:100%;object-fit:contain;">
+        <canvas id="ocr-canvas" style="position:absolute;top:0;left:0;pointer-events:all;"></canvas>
+        <div class="ocr-processing" id="ocr-loading" style="display:none;position:absolute;inset:0;">
+          <div class="spinner"></div>
+          <div class="ocr-hint" id="ocr-status-msg">Claude AI로 손글씨 분석 중...</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;">잠시만 기다려주세요</div>
+        </div>
+      </div>
+      <div class="ocr-controls">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">손글씨 자동 감지</div>
+            <div class="toggle-sub" id="erase-count-label">0개 영역 제거 예정</div>
+          </div>
+          <button class="toggle on" id="auto-toggle" onclick="toggleAuto()"><div class="toggle-knob"></div></button>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">수동 영역 조정</div>
+            <div class="toggle-sub">영역을 탭하여 선택/해제</div>
+          </div>
+          <button class="toggle off" id="manual-toggle" onclick="toggleManual()"><div class="toggle-knob"></div></button>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-box" style="border-color:#378ADD;background:rgba(55,138,221,0.12)"></div>인식 영역</div>
+          <div class="legend-item"><div class="legend-box" style="border-color:#E24B4A;border-style:dashed;background:rgba(226,75,74,0.1)"></div>제거될 영역</div>
+        </div>
+      </div>
+      <div class="bottom-bar">
+        <button class="btn btn-secondary" onclick="retryCam()">다시 찍기</button>
+        <button class="btn btn-primary" onclick="goToStep2()">다음 →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Meta -->
+    <div id="ocr-step2" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+      <div class="scroll" style="padding-bottom:8px;">
+        <div style="padding:16px 16px 8px;font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.5px;">과목 선택</div>
+        <div class="subject-grid" id="subject-grid"></div>
+        <div style="padding:16px 16px 8px;font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-top:8px;">제목 (선택)</div>
+        <div style="padding:0 16px;">
+          <input class="text-input" id="note-title-input" type="text" placeholder="예: 수학 미적분 극값 문제">
+        </div>
+        <div style="padding:16px 16px 4px;font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.5px;">미리보기</div>
+        <div style="padding:0 16px;">
+          <img id="step2-preview" style="width:100%;border-radius:var(--radius-sm);border:0.5px solid var(--border);" alt="">
+        </div>
+      </div>
+      <div class="bottom-bar">
+        <button class="btn btn-secondary" onclick="backToStep1()">이전</button>
+        <button class="btn btn-primary" onclick="saveNote()">저장 후 편집 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ SIZE EDIT ══════════════ -->
+  <div class="screen" id="size-screen">
+    <div class="page-header">
+      <button class="back-btn" onclick="goBack('size-screen')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
+      <div class="page-title">사이즈 · 편집</div>
+      <button class="page-action" onclick="saveSettings()">저장</button>
+    </div>
+    <div class="scroll">
+      <div class="preview-paper-wrap">
+        <div class="preview-paper"><img id="size-preview-img" class="preview-paper-img" alt=""></div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-label">출력 사이즈</div>
+        <div class="chip-row" id="size-chips"></div>
+        <div class="settings-label">여백</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="margin-slider" id="margin-slider" min="0" max="20" value="8" step="1" oninput="updateMarginLabel(this.value)">
+          <span id="margin-label" style="font-size:13px;font-weight:500;color:var(--text2);min-width:32px;">8px</span>
+        </div>
+        <div class="settings-label">빈칸 스타일</div>
+        <div class="chip-row" id="blank-chips"></div>
+        <div class="settings-label" style="margin-top:16px;">QKX X6 프린터</div>
+        <div class="printer-banner">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="4" y="8" width="16" height="10" rx="2" stroke="var(--primary-dark)" stroke-width="1.5"/><rect x="7" y="14" width="10" height="6" rx="1" stroke="var(--primary-dark)" stroke-width="1.5"/><path d="M7 8V5a1 1 0 011-1h8a1 1 0 011 1v3" stroke="var(--primary-dark)" stroke-width="1.5"/><circle cx="17" cy="11" r="1" fill="var(--primary-dark)"/></svg>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--primary-dark);">기기 도착 후 BLE 연결</div>
+            <div style="font-size:11px;color:var(--primary);margin-top:2px;">58mm · 203DPI · ESC/POS</div>
+          </div>
+          <div class="printer-badge">준비 중</div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="btn btn-secondary" onclick="saveSettings(true)">저장</button>
+      <button class="btn btn-disabled">출력 (준비 중)</button>
+    </div>
+  </div>
+
+  <!-- ══════════════ NOTE DETAIL ══════════════ -->
+  <div class="screen" id="detail-screen">
+    <div class="page-header">
+      <button class="back-btn" onclick="goBack('detail-screen')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
+      <div class="page-title" id="detail-title" style="font-size:15px;">오답 상세</div>
+      <div style="display:flex;gap:8px;">
+        <button class="page-action" onclick="editCurrentNote()" style="color:var(--text2);">편집</button>
+        <button class="page-action" onclick="deleteCurrentNote()" style="color:var(--danger);">삭제</button>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="toggle-img-row">
+        <button class="img-toggle-btn active" id="toggle-blank" onclick="showBlank()">빈칸 버전</button>
+        <button class="img-toggle-btn" id="toggle-answer" onclick="showAnswer()">정답 확인</button>
+      </div>
+      <img id="detail-img" class="detail-img" alt="">
+      <button class="review-toggle-btn" id="review-btn" onclick="toggleReviewCurrent()">
+        <div class="review-status-dot" id="review-dot"></div>
+        <div class="review-text" id="review-text"></div>
+        <svg style="margin-left:auto" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="info-grid" id="detail-info"></div>
+      <div class="printer-banner" style="margin:0 16px 16px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="4" y="8" width="16" height="10" rx="2" stroke="var(--primary-dark)" stroke-width="1.5"/><rect x="7" y="14" width="10" height="6" rx="1" stroke="var(--primary-dark)" stroke-width="1.5"/><path d="M7 8V5a1 1 0 011-1h8a1 1 0 011 1v3" stroke="var(--primary-dark)" stroke-width="1.5"/></svg>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--primary-dark);">QKX X6 출력</div>
+          <div style="font-size:11px;color:var(--primary);">프린터 도착 후 활성화</div>
+        </div>
+        <div class="printer-badge">준비 중</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ BOTTOM NAV ══════════════ -->
+  <div id="nav">
+    <button class="nav-btn active" id="nav-home" onclick="switchTab('home')">
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 12L12 3l9 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 10v9a1 1 0 001 1h4v-4h4v4h4a1 1 0 001-1v-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <span class="nav-label">홈</span>
+    </button>
+    <button class="nav-btn" id="nav-notes" onclick="switchTab('notes')">
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="8" x2="16" y2="8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="12" x2="13" y2="12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </div>
+      <span class="nav-label">오답 노트</span>
+    </button>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept="image/*" capture="environment" onchange="handleFileInput(event)">
+<input type="file" id="gallery-input" accept="image/*" onchange="handleFileInput(event)">
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+const SUBJECTS = ['수학','영어','과학','국어','사회','기타'];
+const SUBJECT_COLORS = {
+  '수학': {bg:'#EEEDFE',text:'#3C3489'},
+  '영어': {bg:'#E1F5EE',text:'#0F6E56'},
+  '과학': {bg:'#E6F1FB',text:'#0C447C'},
+  '국어': {bg:'#FAEEDA',text:'#633806'},
+  '사회': {bg:'#FAECE7',text:'#712B13'},
+  '기타': {bg:'#F1EFE8',text:'#444441'},
+};
+const PAPER_SIZES = [{v:'58mm',l:'58mm',d:'미니 프린터'},{v:'A6',l:'A6',d:'105×148mm'},{v:'custom',l:'커스텀',d:'직접 설정'}];
+const BLANK_STYLES = [{v:'white',l:'흰 여백'},{v:'underline',l:'밑줄'},{v:'dotted',l:'점선'}];
+
+let notes = JSON.parse(localStorage.getItem('wa_notes')||'[]');
+let currentNoteId = null;
+let currentImageDataUrl = null;
+let processedImageDataUrl = null;
+let ocrRegions = [];
+let autoDetect = true;
+let manualMode = false;
+let activeFilter = '전체';
+let selectedSubject = '수학';
+let stream = null;
+let screenStack = ['home-screen'];
+let editingNoteId = null;
+let currentPaperSize = '58mm';
+let currentBlankStyle = 'white';
+let currentMargin = 8;
+
+// ════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const saveNotes = () => localStorage.setItem('wa_notes', JSON.stringify(notes));
+const getNoteById = id => notes.find(n=>n.id===id);
+
+function showToast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return `${d.getMonth()+1}월 ${d.getDate()}일`;
+}
+
+function subjectBadgeHtml(subject) {
+  const c = SUBJECT_COLORS[subject]||SUBJECT_COLORS['기타'];
+  return `<span class="subject-badge" style="background:${c.bg};color:${c.text}">${subject}</span>`;
+}
+
+// ════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  const hasNav = id==='home-screen'||id==='notes-screen';
+  $('nav').style.display = hasNav ? 'flex' : 'none';
+}
+
+function goBack(fromId) {
+  if (fromId==='camera-screen') { closeCamera(); return; }
+  screenStack.pop();
+  const prev = screenStack[screenStack.length-1]||'home-screen';
+  showScreen(prev);
+  if(prev==='home-screen') { $('nav-home').classList.add('active'); $('nav-notes').classList.remove('active'); renderHome(); }
+  if(prev==='notes-screen') { $('nav-notes').classList.add('active'); $('nav-home').classList.remove('active'); renderNotes(); }
+}
+
+function navigate(id) {
+  screenStack.push(id);
+  showScreen(id);
+}
+
+function switchTab(tab) {
+  if(tab==='home') {
+    showScreen('home-screen');
+    $('nav-home').classList.add('active'); $('nav-notes').classList.remove('active');
+    screenStack = ['home-screen'];
+    renderHome();
+  } else {
+    showScreen('notes-screen');
+    $('nav-notes').classList.add('active'); $('nav-home').classList.remove('active');
+    screenStack = ['notes-screen'];
+    renderNotes();
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// HOME
+// ════════════════════════════════════════════════════════
+function renderHome() {
+  const hour = new Date().getHours();
+  const greet = hour<12?'좋은 아침이에요 ☀️':hour<18?'안녕하세요 👋':'좋은 저녁이에요 🌙';
+  $('greeting').textContent = greet;
+  $('stat-total').textContent = notes.length;
+  $('stat-todo').textContent = notes.filter(n=>n.reviewStatus==='todo').length;
+  const recent = notes.slice(0,5);
+  const list = $('recent-list');
+  const empty = $('home-empty');
+  if(recent.length===0){ list.innerHTML=''; empty.style.display='flex'; }
+  else {
+    empty.style.display='none';
+    list.innerHTML = recent.map(n=>noteCardHtml(n)).join('');
+  }
+}
+
+function noteCardHtml(n) {
+  const color = n.reviewStatus==='todo'?'#BA7517':'#1D9E75';
+  const thumb = n.processedImage
+    ? `<img src="${n.processedImage}" alt="">`
+    : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="2" stroke="#D3D1C7" stroke-width="1.5"/></svg>`;
+  return `<div class="note-card" onclick="openDetail('${n.id}')">
+    <div class="note-thumb">${thumb}</div>
+    <div class="note-info">
+      ${subjectBadgeHtml(n.subject)}
+      <div class="note-title">${n.title}</div>
+      <div class="note-date">${formatDate(n.createdAt)}</div>
+    </div>
+    <div class="review-dot" style="background:${color}"></div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+// NOTES LIST
+// ════════════════════════════════════════════════════════
+function renderNotes() {
+  const filters = ['전체',...SUBJECTS];
+  $('filter-row').innerHTML = filters.map(f=>
+    `<button class="filter-chip${f===activeFilter?' active':''}" onclick="setFilter('${f}')">${f}</button>`
+  ).join('');
+
+  const filtered = activeFilter==='전체' ? notes : notes.filter(n=>n.subject===activeFilter);
+  const todoC = filtered.filter(n=>n.reviewStatus==='todo').length;
+  const doneC = filtered.length - todoC;
+
+  $('notes-count-badge').textContent = filtered.length+'개';
+  $('notes-summary').innerHTML = filtered.length>0
+    ? `복습 필요 <b style="color:var(--warning)">${todoC}개</b> &nbsp;·&nbsp; 완료 <b style="color:var(--primary)">${doneC}개</b>`
+    : '';
+
+  const list = $('notes-list');
+  const empty = $('notes-empty');
+  if(filtered.length===0){ list.innerHTML=''; empty.style.display='flex'; }
+  else {
+    empty.style.display='none';
+    list.innerHTML = filtered.map(n=>`
+      <div class="note-card" onclick="openDetail('${n.id}')">
+        <div class="note-thumb">${n.processedImage?`<img src="${n.processedImage}" alt="">`:''}</div>
+        <div class="note-info">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+            ${subjectBadgeHtml(n.subject)}
+            <span style="font-size:10px;color:var(--text3);">${formatDate(n.createdAt)}</span>
+          </div>
+          <div class="note-title">${n.title}</div>
+        </div>
+        <button onclick="event.stopPropagation();toggleReview('${n.id}')" style="padding:6px;background:none;border:none;cursor:pointer;">
+          ${n.reviewStatus==='done'
+            ? `<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#E1F5EE"/><path d="M8 12l3 3 5-5" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>`
+            : `<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#D3D1C7" stroke-width="1.5" fill="none"/></svg>`}
+        </button>
+      </div>`).join('');
+  }
+}
+
+function setFilter(f) { activeFilter=f; renderNotes(); }
+function toggleReview(id) {
+  const n = getNoteById(id); if(!n) return;
+  n.reviewStatus = n.reviewStatus==='todo'?'done':'todo';
+  n.updatedAt = new Date().toISOString();
+  saveNotes(); renderNotes();
+  showToast(n.reviewStatus==='done'?'✓ 복습 완료':'복습 필요로 변경됨');
+}
+
+// ════════════════════════════════════════════════════════
+// CAMERA
+// ════════════════════════════════════════════════════════
+async function openCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode:'environment', width:{ideal:1920}, height:{ideal:1080} }
+    });
+    $('video').srcObject = stream;
+    navigate('camera-screen');
+  } catch(e) {
+    showToast('카메라 접근 실패 — 갤러리를 이용해주세요');
+    document.getElementById('gallery-input').click();
+  }
+}
+
+function closeCamera() {
+  if(stream) { stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  screenStack.pop();
+  showScreen('home-screen'); $('nav').style.display='flex';
+}
+
+function takePhoto() {
+  const video = $('video');
+  const canvas = $('photo-canvas');
+  canvas.width = video.videoWidth || 1280;
+  canvas.height = video.videoHeight || 720;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  currentImageDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+  closeCamera();
+  startOcr();
+}
+
+function toggleFlash() { showToast('플래시는 기기에서 직접 조절해주세요'); }
+
+// ════════════════════════════════════════════════════════
+// FILE INPUT
+// ════════════════════════════════════════════════════════
+function handleFileInput(e) {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    currentImageDataUrl = ev.target.result;
+    if(stream) closeCamera(); else { screenStack = ['home-screen']; }
+    startOcr();
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
+}
+
+// ════════════════════════════════════════════════════════
+// OCR PROCESS
+// ════════════════════════════════════════════════════════
+function startOcr() {
+  ocrRegions = []; processedImageDataUrl = null; editingNoteId = null;
+  autoDetect = true;
+  manualMode = false;
+  $('auto-toggle').className = 'toggle on';
+  $('manual-toggle').className = 'toggle off';
+
+  const img = $('img-preview');
+  img.onload = () => {
+    setPreviewWrapHeight();
+    navigate('ocr-screen');
+    showStep(1);
+    runOcr();
+  };
+  img.src = currentImageDataUrl;
+}
+
+// wrap 높이 = 화면의 42% (이미지는 object-fit:contain으로 안에 맞춤)
+function setPreviewWrapHeight() {
+  const h = Math.min(Math.floor(window.innerHeight * 0.42), 340);
+  $('img-preview-wrap').style.height = h + 'px';
+}
+
+// 이미지가 wrap 안에서 실제로 렌더되는 위치/크기 계산
+// (object-fit:contain이므로 좌우 또는 상하에 레터박스가 생김)
+function getImageRect() {
+  const img = $('img-preview');
+  const wrap = $('img-preview-wrap');
+  const wrapW = wrap.clientWidth;
+  const wrapH = wrap.clientHeight;
+  const natW = img.naturalWidth  || 1;
+  const natH = img.naturalHeight || 1;
+
+  const scale = Math.min(wrapW / natW, wrapH / natH);
+  const rendW = natW * scale;
+  const rendH = natH * scale;
+  const offX  = (wrapW - rendW) / 2;   // 수평 여백
+  const offY  = (wrapH - rendH) / 2;   // 수직 여백
+
+  return { rendW, rendH, offX, offY, natW, natH, scale };
+}
+
+// ════════════════════════════════════════════════════════
+// Google Vision API OCR (월 1000장 무료)
+// ════════════════════════════════════════════════════════
+
+// ★ Google Cloud Vision API 키를 여기에 넣으세요
+const GOOGLE_API_KEY = 'server'; // 서버에서 처리
+
+async function runOcr() {
+  $('ocr-loading').style.display = 'flex';
+  ocrRegions = [];
+
+  // API는 서버(Netlify Function)에서 처리
+
+  try {
+    updateOcrStatus('이미지 준비 중...');
+    const resized = await resizeImageForApi(currentImageDataUrl, 1500);
+    const base64  = resized.split(',')[1];
+    const { natW, natH } = getImageRect();
+
+    updateOcrStatus('Google Vision으로 인식 중...');
+
+    // Netlify Function 경유 (CORS 우회)
+    const res = await fetch('/.netlify/functions/ocr', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64 })
+    });
+
+    if (!res.ok) {
+      const e = await res.text().catch(() => '');
+      throw new Error(`Vision API ${res.status}: ${e.slice(0, 150)}`);
+    }
+
+    const data = await res.json();
+    const resp = data.responses?.[0];
+    if (resp?.error) throw new Error(resp.error.message);
+
+    // 단어 단위 bbox 추출
+    const words = resp?.fullTextAnnotation?.pages?.[0]?.blocks
+      ?.flatMap(b => b.paragraphs)
+      ?.flatMap(p => p.words) || [];
+
+    // 리사이즈 비율 보정
+    const tmpImg = new Image();
+    await new Promise(r => { tmpImg.onload = r; tmpImg.src = resized; });
+    const scX = natW / (tmpImg.width  || 1);
+    const scY = natH / (tmpImg.height || 1);
+
+    const rawRegions = words
+      .filter(w => {
+        const txt = (w.symbols || []).map(s => s.text).join('');
+        return txt.trim().length > 0 && isLikelyHandwriting(w);
+      })
+      .map(w => {
+        const verts = w.boundingBox?.vertices || [];
+        const xs = verts.map(v => (v.x || 0) * scX);
+        const ys = verts.map(v => (v.y || 0) * scY);
+        return {
+          id: genId(),
+          text: (w.symbols || []).map(s => s.text).join(''),
+          bbox: {
+            x0: Math.max(0, Math.min(...xs)),
+            y0: Math.max(0, Math.min(...ys)),
+            x1: Math.min(natW, Math.max(...xs)),
+            y1: Math.min(natH, Math.max(...ys)),
+          },
+          isHandwriting: true,
+          toErase: autoDetect,
+        };
+      });
+
+    ocrRegions = mergeNearbyRegions(rawRegions, natW);
+
+    if (ocrRegions.length === 0) {
+      showToast('손글씨가 감지되지 않았어요 — 수동으로 영역을 그려보세요');
+      activateManualMode();
+    } else {
+      showToast(`${ocrRegions.length}개 손글씨 영역 감지됨 ✓`);
+    }
+
+  } catch(e) {
+    console.error('Vision OCR 오류:', e.message);
+    showToast('자동 인식 실패 — 수동으로 영역을 그려주세요');
+    activateManualMode();
+  }
+
+  $('ocr-loading').style.display = 'none';
+  updateEraseCount();
+  drawOcrCanvas();
+}
+
+// 손글씨 여부 판별
+function isLikelyHandwriting(word) {
+  const conf = word.confidence || 1;
+  const txt  = (word.symbols || []).map(s => s.text).join('');
+  if (conf < 0.80) return true;
+  if (/^\d+\.?\d*$/.test(txt)) return true;
+  if (/[=+\-×÷²³√∫①②③○△□]/.test(txt)) return true;
+  if (/[가-힣]/.test(txt) && /\d/.test(txt)) return true;
+  if (txt.length <= 3 && conf < 0.92) return true;
+  return false;
+}
+
+// 인접 bbox를 줄 단위로 병합
+function mergeNearbyRegions(regions, imgWidth) {
+  if (regions.length === 0) return [];
+  const sorted = [...regions].sort((a, b) => a.bbox.y0 - b.bbox.y0);
+  const merged = [];
+  let group = [sorted[0]];
+  for (let i = 1; i < sorted.length; i++) {
+    const cur  = sorted[i];
+    const last = group[group.length - 1];
+    if (cur.bbox.y0 < last.bbox.y1 + 20 && cur.bbox.x0 < last.bbox.x1 + imgWidth * 0.15) {
+      group.push(cur);
+    } else {
+      merged.push(collapseGroup(group));
+      group = [cur];
+    }
+  }
+  merged.push(collapseGroup(group));
+  return merged;
+}
+
+function collapseGroup(group) {
+  return {
+    id: genId(),
+    text: group.map(r => r.text).join(' '),
+    bbox: {
+      x0: Math.min(...group.map(r => r.bbox.x0)),
+      y0: Math.min(...group.map(r => r.bbox.y0)),
+      x1: Math.max(...group.map(r => r.bbox.x1)),
+      y1: Math.max(...group.map(r => r.bbox.y1)),
+    },
+    isHandwriting: true,
+    toErase: true,
+  };
+}
+
+function resizeImageForApi(dataUrl, maxPx) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxPx || h > maxPx) {
+        if (w >= h) { h = Math.round(h * maxPx / w); w = maxPx; }
+        else        { w = Math.round(w * maxPx / h); h = maxPx; }
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = dataUrl;
+  });
+}
+
+function activateManualMode() {
+  manualMode = true;
+  $('manual-toggle').className = 'toggle on';
+  $('ocr-canvas').style.cursor = 'crosshair';
+}
+
+function updateOcrStatus(msg) {
+  const el = $('ocr-status-msg');
+  if (el) el.textContent = msg;
+}
+
+function updateEraseCount() {
+  const c = ocrRegions.filter(r => r.toErase).length;
+  $('erase-count-label').textContent = `${c}개 영역 제거 예정`;
+}
+
+// ─── Canvas 오버레이 — 이미지 실제 렌더 위치 기준으로 그리기 ───────────────
+function drawOcrCanvas() {
+  const canvas = $('ocr-canvas');
+  const wrap   = $('img-preview-wrap');
+
+  // canvas = wrap 전체 크기
+  const wW = wrap.clientWidth, wH = wrap.clientHeight;
+  canvas.width  = wW;
+  canvas.height = wH;
+  canvas.style.width  = wW + 'px';
+  canvas.style.height = wH + 'px';
+
+  const { rendW, rendH, offX, offY, natW, natH } = getImageRect();
+  const scaleX = rendW / natW;
+  const scaleY = rendH / natH;
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, wW, wH);
+
+  for (const r of ocrRegions) {
+    // 원본 이미지 좌표 → 화면 좌표 (offX/offY로 보정)
+    const x = offX + r.bbox.x0 * scaleX;
+    const y = offY + r.bbox.y0 * scaleY;
+    const w = (r.bbox.x1 - r.bbox.x0) * scaleX;
+    const h = (r.bbox.y1 - r.bbox.y0) * scaleY;
+
+    if (r.toErase) {
+      ctx.fillStyle   = 'rgba(226,75,74,0.15)';
+      ctx.strokeStyle = '#E24B4A';
+      ctx.setLineDash([5, 3]);
+    } else {
+      ctx.fillStyle   = 'rgba(55,138,221,0.15)';
+      ctx.strokeStyle = '#378ADD';
+      ctx.setLineDash([]);
+    }
+    ctx.lineWidth = 2;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+    ctx.setLineDash([]);
+  }
+}
+
+// ─── Canvas 터치/드래그 — 이미지 실제 위치 기준 좌표 변환 ─────────────────
+let dragStart = null;
+let isDragging = false;
+
+function canvasPtToImageCoord(cx, cy) {
+  // canvas 좌표(wrap 기준) → 원본 이미지 픽셀 좌표
+  const { offX, offY, natW, natH, rendW, rendH } = getImageRect();
+  const ix = (cx - offX) * (natW / rendW);
+  const iy = (cy - offY) * (natH / rendH);
+  return { ix, iy };
+}
+
+$('ocr-canvas').addEventListener('pointerdown', function(e) {
+  if (!manualMode) return;
+  e.preventDefault();
+  const rect = this.getBoundingClientRect();
+  dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  isDragging = false;
+  this.setPointerCapture(e.pointerId);
+});
+
+$('ocr-canvas').addEventListener('pointermove', function(e) {
+  if (!manualMode || !dragStart) return;
+  const rect = this.getBoundingClientRect();
+  const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+  const dx = cx - dragStart.x, dy = cy - dragStart.y;
+  if (Math.abs(dx) > 6 || Math.abs(dy) > 6) isDragging = true;
+  if (!isDragging) return;
+
+  drawOcrCanvas();
+  const ctx = $('ocr-canvas').getContext('2d');
+  ctx.strokeStyle = '#1D9E75';
+  ctx.lineWidth   = 2.5;
+  ctx.setLineDash([6, 3]);
+  ctx.strokeRect(dragStart.x, dragStart.y, dx, dy);
+  ctx.setLineDash([]);
+});
+
+$('ocr-canvas').addEventListener('pointerup', function(e) {
+  if (!manualMode || !dragStart) return;
+  const rect = this.getBoundingClientRect();
+  const ex = e.clientX - rect.left, ey = e.clientY - rect.top;
+
+  if (isDragging) {
+    // 드래그 종료 → 새 영역 추가 (이미지 원본 좌표로 변환)
+    const x0c = Math.min(dragStart.x, ex), y0c = Math.min(dragStart.y, ey);
+    const x1c = Math.max(dragStart.x, ex), y1c = Math.max(dragStart.y, ey);
+
+    if ((x1c - x0c) > 8 && (y1c - y0c) > 8) {
+      const p0 = canvasPtToImageCoord(x0c, y0c);
+      const p1 = canvasPtToImageCoord(x1c, y1c);
+      const { natW, natH } = getImageRect();
+
+      ocrRegions.push({
+        id: genId(), text: '수동 선택',
+        bbox: {
+          x0: Math.max(0, p0.ix), y0: Math.max(0, p0.iy),
+          x1: Math.min(natW, p1.ix), y1: Math.min(natH, p1.iy),
+        },
+        isHandwriting: true, toErase: true,
+      });
+      showToast('영역 추가됨');
+      updateEraseCount(); drawOcrCanvas();
+    }
+  } else {
+    // 탭 → 기존 영역 토글
+    const { offX, offY, natW, natH, rendW, rendH } = getImageRect();
+    const scaleX = rendW / natW, scaleY = rendH / natH;
+    const px = dragStart.x, py = dragStart.y;
+
+    for (const r of ocrRegions) {
+      const x = offX + r.bbox.x0 * scaleX;
+      const y = offY + r.bbox.y0 * scaleY;
+      const w = (r.bbox.x1 - r.bbox.x0) * scaleX;
+      const h = (r.bbox.y1 - r.bbox.y0) * scaleY;
+      if (px >= x && px <= x+w && py >= y && py <= y+h) {
+        r.toErase = !r.toErase; break;
+      }
+    }
+    updateEraseCount(); drawOcrCanvas();
+  }
+
+  dragStart = null; isDragging = false;
+});
+
+function toggleAuto() {
+  autoDetect = !autoDetect;
+  const btn = $('auto-toggle');
+  btn.className = 'toggle '+(autoDetect?'on':'off');
+  ocrRegions.forEach(r=>{ r.toErase = autoDetect ? r.isHandwriting : false; });
+  updateEraseCount(); drawOcrCanvas();
+}
+
+function toggleManual() {
+  manualMode = !manualMode;
+  const btn = $('manual-toggle');
+  btn.className = 'toggle '+(manualMode?'on':'off');
+  $('ocr-canvas').style.cursor = manualMode?'crosshair':'default';
+}
+
+function retryCam() { screenStack.pop(); openCamera(); }
+
+// ════════════════════════════════════════════════════════
+// STEP NAVIGATION
+// ════════════════════════════════════════════════════════
+function showStep(n) {
+  $('ocr-step1').style.display = n===1?'flex':'none';
+  $('ocr-step2').style.display = n===2?'flex':'none';
+  $('dot-1').className='dot'+(n===1?' active':'');
+  $('dot-2').className='dot'+(n===2?' active':'');
+  $('ocr-step-title').textContent = n===1?'손글씨 인식':'정보 입력';
+}
+
+function goToStep2() {
+  buildStep2Preview();
+  showStep(2);
+}
+
+function backToStep1() { showStep(1); }
+
+function buildStep2Preview() {
+  $('step2-preview').src = currentImageDataUrl;
+  renderSubjectGrid();
+  $('note-title-input').value = '';
+}
+
+function renderSubjectGrid() {
+  $('subject-grid').innerHTML = SUBJECTS.map(s=>{
+    const c = SUBJECT_COLORS[s];
+    const active = s===selectedSubject;
+    return `<button class="subject-chip${active?' active':''}"
+      style="${active?`background:${c.bg};border-color:${c.text};color:${c.text};`:''}font-family:inherit;"
+      onclick="selectSubject('${s}')">${s}</button>`;
+  }).join('');
+}
+
+function selectSubject(s) { selectedSubject=s; renderSubjectGrid(); }
+
+// ════════════════════════════════════════════════════════
+// SAVE NOTE
+// ════════════════════════════════════════════════════════
+async function saveNote() {
+  const title = $('note-title-input').value.trim() ||
+    `${selectedSubject} 오답 ${new Date().toLocaleDateString('ko-KR')}`;
+
+  // 손글씨 영역 마스킹
+  const processed = await applyErase(currentImageDataUrl, ocrRegions);
+  processedImageDataUrl = processed;
+
+  const id = editingNoteId || genId();
+  const note = {
+    id, subject: selectedSubject, title,
+    originalImage: currentImageDataUrl,
+    processedImage: processedImageDataUrl,
+    ocrRegions: ocrRegions.map(r=>({...r})),
+    printSettings: { paperSize:'58mm', blankStyle:'white', margin:8 },
+    reviewStatus: 'todo',
+    createdAt: editingNoteId ? (getNoteById(id)||{createdAt:new Date().toISOString()}).createdAt : new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if(editingNoteId) {
+    const idx = notes.findIndex(n=>n.id===editingNoteId);
+    if(idx!==-1) notes[idx]=note; else notes.unshift(note);
+  } else {
+    notes.unshift(note);
+  }
+  saveNotes(); currentNoteId=id;
+  showToast('저장됐어요!');
+  openSizeEdit(id);
+}
+
+async function applyErase(dataUrl, regions) {
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const canvas = document.createElement('canvas');
+      canvas.width=img.naturalWidth; canvas.height=img.naturalHeight;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0);
+      ctx.fillStyle='#FFFFFF';
+      const pad=6;
+      for(const r of regions) {
+        if(!r.toErase) continue;
+        ctx.fillRect(r.bbox.x0-pad, r.bbox.y0-pad, (r.bbox.x1-r.bbox.x0)+pad*2, (r.bbox.y1-r.bbox.y0)+pad*2);
+      }
+      resolve(canvas.toDataURL('image/jpeg',0.92));
+    };
+    img.src=dataUrl;
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// SIZE EDIT
+// ════════════════════════════════════════════════════════
+function openSizeEdit(noteId) {
+  const n = getNoteById(noteId); if(!n) return;
+  currentNoteId=noteId;
+  currentPaperSize = n.printSettings?.paperSize||'58mm';
+  currentBlankStyle = n.printSettings?.blankStyle||'white';
+  currentMargin = n.printSettings?.margin??8;
+
+  $('size-preview-img').src = n.processedImage||n.originalImage||'';
+  $('margin-slider').value = currentMargin;
+  $('margin-label').textContent = currentMargin+'px';
+  renderSizeChips(); renderBlankChips();
+  navigate('size-screen');
+}
+
+function renderSizeChips() {
+  $('size-chips').innerHTML = PAPER_SIZES.map(p=>`
+    <button class="chip${p.v===currentPaperSize?' active':''}" onclick="setPaperSize('${p.v}')">${p.l}<br><span style="font-size:10px;opacity:.7">${p.d}</span></button>`).join('');
+}
+function renderBlankChips() {
+  $('blank-chips').innerHTML = BLANK_STYLES.map(b=>`
+    <button class="chip${b.v===currentBlankStyle?' active-green':''}" onclick="setBlankStyle('${b.v}')">${b.l}</button>`).join('');
+}
+function setPaperSize(v){ currentPaperSize=v; renderSizeChips(); }
+function setBlankStyle(v){ currentBlankStyle=v; renderBlankChips(); }
+function updateMarginLabel(v){ $('margin-label').textContent=v+'px'; currentMargin=parseInt(v); }
+
+function saveSettings(goHome) {
+  const n = getNoteById(currentNoteId); if(!n) return;
+  n.printSettings = { paperSize:currentPaperSize, blankStyle:currentBlankStyle, margin:currentMargin };
+  n.updatedAt = new Date().toISOString();
+  saveNotes(); showToast('저장됐어요!');
+  if(goHome) { screenStack=['home-screen']; showScreen('home-screen'); $('nav').style.display='flex'; renderHome(); }
+  else { openDetail(currentNoteId); }
+}
+
+// ════════════════════════════════════════════════════════
+// DETAIL
+// ════════════════════════════════════════════════════════
+function openDetail(id) {
+  const n=getNoteById(id); if(!n) return;
+  currentNoteId=id;
+  $('detail-title').textContent = n.title;
+  $('detail-img').src = n.processedImage||n.originalImage||'';
+  $('toggle-blank').classList.add('active'); $('toggle-answer').classList.remove('active');
+  updateReviewBtn(n);
+  const ps = n.printSettings||{};
+  $('detail-info').innerHTML = `
+    <div class="info-cell"><div class="info-label-s">과목</div><div class="info-value-s">${subjectBadgeHtml(n.subject)}</div></div>
+    <div class="info-cell"><div class="info-label-s">작성일</div><div class="info-value-s">${formatDate(n.createdAt)}</div></div>
+    <div class="info-cell"><div class="info-label-s">출력 사이즈</div><div class="info-value-s">${ps.paperSize||'58mm'}</div></div>
+    <div class="info-cell"><div class="info-label-s">빈칸 스타일</div><div class="info-value-s">${ps.blankStyle==='white'?'흰 여백':ps.blankStyle==='underline'?'밑줄':'점선'}</div></div>
+  `;
+  navigate('detail-screen');
+}
+
+function updateReviewBtn(n) {
+  const done = n.reviewStatus==='done';
+  $('review-dot').style.background = done?'#1D9E75':'#BA7517';
+  $('review-text').textContent = done?'✓ 복습 완료 (탭하여 변경)':'복습 필요 (탭하여 완료)';
+  $('review-text').style.color = done?'#0F6E56':'#BA7517';
+}
+
+function showBlank() {
+  const n=getNoteById(currentNoteId); if(!n) return;
+  $('detail-img').src=n.processedImage||n.originalImage||'';
+  $('toggle-blank').classList.add('active'); $('toggle-answer').classList.remove('active');
+}
+function showAnswer() {
+  const n=getNoteById(currentNoteId); if(!n) return;
+  $('detail-img').src=n.originalImage||'';
+  $('toggle-answer').classList.add('active'); $('toggle-blank').classList.remove('active');
+}
+
+function toggleReviewCurrent() {
+  const n=getNoteById(currentNoteId); if(!n) return;
+  n.reviewStatus=n.reviewStatus==='todo'?'done':'todo';
+  n.updatedAt=new Date().toISOString();
+  saveNotes(); updateReviewBtn(n);
+  showToast(n.reviewStatus==='done'?'✓ 복습 완료':'복습 필요로 변경됨');
+}
+
+function editCurrentNote() { openSizeEdit(currentNoteId); }
+
+function deleteCurrentNote() {
+  if(!confirm('이 오답을 삭제할까요?')) return;
+  notes=notes.filter(n=>n.id!==currentNoteId);
+  saveNotes(); showToast('삭제됐어요');
+  screenStack=['home-screen']; showScreen('home-screen'); $('nav').style.display='flex'; renderHome();
+}
+
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+renderHome();
+</script>
+<script>if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js");</script>
+</body>
+</html>
